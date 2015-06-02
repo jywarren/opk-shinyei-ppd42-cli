@@ -8,7 +8,7 @@ var firmata = require('firmata');
 program
   .version('0.0.1')
   .option('-p, --path <path>', "Set a path to the Shinyei device's Arduino-based USB interface, default /dev/ttyACM0", '/dev/ttyACM0')
-  .option('-i, --interval <milliseconds>', 'Set a detection interval; how often, in milliseconds, to read high or low from the Shinyei; default 10', 10)
+  .option('-i, --interval <milliseconds>', 'Set a detection interval; how often, in milliseconds, to read high or low from the Shinyei; default 1', 1)
   .option('-s, --summing <seconds>', 'Set a summing interval; how often, in seconds, to sum highs and lows and report a percentage; default 30', 30)
   .option('-1, --pin1 <pin>', "Set a digital pin # for the Arduino to communicate with the Shinyei device's P1 sensor; default pin 8", 8)
   .option('-2, --pin2 <pin>', "Set a digital pin # for the Arduino to communicate with the Shinyei device's P2 sensor; default pin 9", 9)
@@ -22,29 +22,41 @@ var log = function(msg) {
   }
 }
 
-var pin1hi     = 0, 
-    pin1lo     = 0,
-    pin2hi     = 0, 
-    pin2lo     = 0,
-    detections = 0;
+var pin1HiTotalMs = 0, 
+    pin1LoTotalMs = 0,
+    pin2HiTotalMs = 0, 
+    pin2LoTotalMs = 0,
+    lastRead1     = 0,
+    lastRead2     = 0,
+    thisRead1     = 0,
+    thisRead2     = 0,
+    readCount1    = 0,
+    readCount2    = 0,
+    pin1count     = 0,
+    pin2count     = 0;
 
 var pin1callback = function(value) {
-  log(value);
+  thisRead1 = new Date().getTime();
+  log('p1:'+value+', interval:'+parseInt(thisRead1-lastRead1)+'ms');
   if (value == 0) {
-    pin1lo += 1;
+    pin1HiTotalMs += thisRead1-lastRead1;
   } else if (value == 1) {
-    pin1hi += 1;
-  } 
-  detections += 1;
+    pin1LoTotalMs += thisRead1-lastRead1;
+  }
+  lastRead1 = thisRead1;
+  pin1count += 1;
 }
 
 var pin2callback = function(value) {
-  log(value);
+  thisRead2 = new Date().getTime();
+  log('p2:'+value+', interval:'+parseInt(thisRead2-lastRead2)+'ms');
   if (value == 0) {
-    pin2lo += 1;
+    pin2HiTotalMs += thisRead2-lastRead2;
   } else if (value == 1) {
-    pin2hi += 1;
+    pin2LoTotalMs += thisRead2-lastRead2;
   } 
+  lastRead2 = thisRead2;
+  pin2count += 1;
 }
 
 board = new firmata.Board(program.path)
@@ -54,30 +66,38 @@ board.on('ready',function(){
   this.pinMode(program.pin1, this.MODES.INPUT);
   this.pinMode(program.pin2, this.MODES.INPUT);
 
-  setInterval(function() {
-    // Read a digital value from the pin. Evertime there is data for the pin the callback will be fired with a value argument.
+  lastRead1 = new Date().getTime();
+  lastRead2 = new Date().getTime();
+
+  //setInterval(function() {
+    // Read a digital value from the pin. Every time there is data for the pin the callback will be fired with a value argument.
+
     board.digitalRead(program.pin1,pin1callback);
     board.digitalRead(program.pin2,pin2callback);
-  },program.interval);
+  //},program.interval);
+
+  log('begin digitalRead');
 
   setInterval(function() {
+
     // report percentage low for each pin:
-    var p1lowpercent = parseFloat(pin1lo/(pin1hi+pin1lo)),
-        p2lowpercent = parseFloat(pin2lo/(pin2hi+pin2lo));
+    var p1lowpercent = parseFloat(pin1LoTotalMs/(pin1LoTotalMs+pin1HiTotalMs)),
+        p2lowpercent = parseFloat(pin2LoTotalMs/(pin2LoTotalMs+pin2HiTotalMs));
 
     if (program.json) {
       console.log("{'p1lowpercent':"+p1lowpercent
                  +",'p2lowpercent':"+p2lowpercent+"}")
     } else {
-      console.log(p1lowpercent+","+p2lowpercent+", detections:"+detections)
+      console.log(p1lowpercent+","+p2lowpercent+", p1 count:"+pin1count+", p2 count:"+pin2count+", avg interval:"+(30000/pin1count)+"ms")
     }
 
     // reset counters
-    pin1hi = 0;
-    pin1lo = 0;
-    pin2hi = 0;
-    pin2lo = 0;
-    detections = 0;
+    pin1HiTotalMs = 0;
+    pin1LoTotalMs = 0;
+    pin2HiTotalMs = 0; 
+    pin2LoTotalMs = 0;
+    pin1count = 0;
+    pin2count = 0;
 
   },program.summing*1000);
 
