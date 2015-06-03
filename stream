@@ -81,14 +81,18 @@ board.on('ready',function(){
   setInterval(function() {
 
     // report percentage low for each pin:
-    var p1lowpercent = parseFloat(pin1LoTotalMs/(pin1LoTotalMs+pin1HiTotalMs)),
-        p2lowpercent = parseFloat(pin2LoTotalMs/(pin2LoTotalMs+pin2HiTotalMs));
+    var p1lowpercent = parseFloat(pin1LoTotalMs/(pin1LoTotalMs+pin1HiTotalMs)) || 0,
+        p2lowpercent = parseFloat(pin2LoTotalMs/(pin2LoTotalMs+pin2HiTotalMs)) || 0;
 
     if (program.json) {
       console.log("{'p1lowpercent':"+p1lowpercent
                  +",'p2lowpercent':"+p2lowpercent+"}")
     } else {
-      console.log(p1lowpercent+","+p2lowpercent+", p1 count:"+pin1count+", p2 count:"+pin2count+", avg interval:"+(30000/pin1count)+"ms")
+      if (program.verbose) {
+        console.log(p1lowpercent+","+p2lowpercent+", p1 count:"+pin1count+", p2 count:"+pin2count+", avg interval:"+(30000/pin1count)+"ms")
+      } else {
+        console.log(p1lowpercent+","+p2lowpercent)
+      }
     }
 
     // reset counters
