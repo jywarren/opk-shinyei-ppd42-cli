@@ -4,7 +4,8 @@
   "description": "An Open Pipe Kit command line interface for interacting with the Shinyei PPD42 optical dust sensor",
   "main": "stream",
   "dependencies": {
-    "firmata": "0.4.1",
+    "firmata":   "0.4.1",
+    "split":     "1.0.0",
     "commander": "2.6.0"
   },
   "devDependencies": {},
