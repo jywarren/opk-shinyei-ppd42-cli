@@ -60,6 +60,10 @@ var pin2callback = function(value) {
 }
 
 board = new firmata.Board(program.path)
+board.on('error',function(e) {
+  console.log('error!');
+  console.log(e);
+})
 board.on('ready',function(){
   //arduino is ready to communicate
 
@@ -93,6 +97,7 @@ board.on('ready',function(){
       } else {
         console.log(p1lowpercent+","+p2lowpercent)
       }
+
     }
 
     // reset counters
